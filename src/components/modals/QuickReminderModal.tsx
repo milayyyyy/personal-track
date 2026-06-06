@@ -38,8 +38,8 @@ export default function QuickReminderModal({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900/95 rounded-2xl p-6 border border-slate-700 w-full max-w-md space-y-4 shadow-2xl">
+    <div className="modal-overlay">
+      <div className="modal-panel space-y-4 shadow-2xl">
         <div className="flex justify-between items-center">
           <h4 className="font-bold text-white text-base">Create New Reminder</h4>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-200">✕</button>

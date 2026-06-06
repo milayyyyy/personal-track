@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LifeFlow">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#020617"/>
+  <rect x="64" y="64" width="384" height="384" rx="88" fill="url(#g)"/>
+  <path fill="#fff" d="M156 300c0-66 54-120 120-120s120 54 120 120v28H156v-28zm120-88c-48 0-88 36-92 82h184c-4-46-44-82-92-82z"/>
+  <path fill="#fff" opacity=".9" d="M196 356h120v36H196z"/>
+</svg>

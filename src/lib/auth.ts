@@ -180,15 +180,7 @@ export async function signUpWithUsername(
 
   if (error) {
     if (error.message.toLowerCase().includes('already registered')) {
-      const sessionResult = await establishSession(trimmedUsername);
-      if (!sessionResult.ok) {
-        return sessionResult;
-      }
-      const existingProfile = await ensureProfileAndData(sessionResult.userId, trimmedUsername);
-      if (existingProfile) {
-        return { ok: true, profile: existingProfile };
-      }
-      return { ok: false, error: 'That username exists but setup failed. Try logging in.' };
+      return { ok: false, error: 'That username is already taken. Please choose another.' };
     }
     return { ok: false, error: error.message };
   }
@@ -212,7 +204,7 @@ export async function signUpWithUsername(
   return { ok: true, profile };
 }
 
-export async function signInOrCreateWithUsername(
+export async function signInWithUsername(
   username: string,
 ): Promise<{ ok: true; profile: AuthProfile } | { ok: false; error: string }> {
   if (!isSupabaseConfigured() || !isAuthSecretConfigured()) {
@@ -224,40 +216,29 @@ export async function signInOrCreateWithUsername(
     return { ok: false, error: validationError };
   }
 
-  const { trimmedUsername, internalEmail, internalPassword } = getCredentials(username);
+  const { internalEmail, internalPassword } = getCredentials(username);
 
-  const signInAttempt = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: internalEmail,
     password: internalPassword,
   });
 
-  if (!signInAttempt.error && signInAttempt.data.user) {
-    const profile = await ensureProfileAndData(signInAttempt.data.user.id, trimmedUsername);
-    if (profile) {
-      return { ok: true, profile };
-    }
+  if (error || !data.user) {
+    return {
+      ok: false,
+      error: 'That username was not found. Use Create Account to register a new username.',
+    };
   }
 
-  const availability = await isUsernameAvailable(trimmedUsername);
-  if (availability === false) {
-    const retrySession = await establishSession(trimmedUsername);
-    if (!retrySession.ok) {
-      return retrySession;
-    }
-    const profile = await ensureProfileAndData(retrySession.userId, trimmedUsername);
-    if (profile) {
-      return { ok: true, profile };
-    }
-    return { ok: false, error: 'That username exists but setup is incomplete. Try again in a moment.' };
+  const profile = await fetchProfile(data.user.id);
+  if (!profile) {
+    return {
+      ok: false,
+      error: 'That username was not found. Use Create Account to register a new username.',
+    };
   }
 
-  return signUpWithUsername(username);
-}
-
-export async function signInWithUsername(
-  username: string,
-): Promise<{ ok: true; profile: AuthProfile } | { ok: false; error: string }> {
-  return signInOrCreateWithUsername(username);
+  return { ok: true, profile };
 }
 
 export async function signOutUser(): Promise<void> {

@@ -17,6 +17,9 @@ import QuickTaskModal from './components/modals/QuickTaskModal';
 import QuickReminderModal from './components/modals/QuickReminderModal';
 import QuickFoodModal from './components/modals/QuickFoodModal';
 import OfflineStatusBanner from './components/OfflineStatusBanner';
+import MobileBottomNav from './components/MobileBottomNav';
+import PwaInstallBanner from './components/PwaInstallBanner';
+import { NAV_ITEMS } from './lib/navItems';
 import { CURRENCY_LIST, CurrencyToggle, formatMoney } from './components/CurrencyToggle';
 import type { Account, Currency, Transaction, TransactionCategory } from './types/finance';
 import type { Priority } from './types/tasks';
@@ -31,7 +34,6 @@ import {
   Flame,
   Droplets,
   Bell,
-  ListTodo,
   Activity,
   Play,
   Pause,
@@ -40,7 +42,6 @@ import {
   PlusCircle,
   AlertCircle,
   LogOut,
-  UtensilsCrossed,
 } from 'lucide-react';
 
 type TxType = 'income' | 'expense';
@@ -94,9 +95,9 @@ function getDefaultAppData(): PersistedAppData {
   return getEmptyAppData();
 }
 
-function navLinkClass(isActive: boolean, activeClass: string) {
-  return `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-    isActive ? activeClass : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+function sidebarLinkClass(isActive: boolean, activeClass: string) {
+  return `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all touch-manipulation ${
+    isActive ? `${activeClass} bg-slate-800/60` : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
   }`;
 }
 
@@ -683,20 +684,21 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex flex-col font-sans">
       <OfflineStatusBanner />
+      <PwaInstallBanner />
 
       {/* Top Premium Navigation bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/85 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="bg-gradient-to-tr from-indigo-500 to-emerald-400 p-2.5 rounded-xl shadow-lg shadow-indigo-500/10">
-            <Activity className="h-6 w-6 text-white animate-pulse" />
+      <header className="sticky top-0 z-40 bg-slate-900/85 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2 pt-safe">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          <div className="bg-gradient-to-tr from-indigo-500 to-emerald-400 p-2 sm:p-2.5 rounded-xl shadow-lg shadow-indigo-500/10 shrink-0">
+            <Activity className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              LifeFlow <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">v1.3</span>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2 truncate">
+              LifeFlow <span className="hidden sm:inline text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">v1.3</span>
             </h1>
-            <p className="text-xs text-slate-400">Finance & Wellness Dashboard</p>
+            <p className="hidden sm:block text-xs text-slate-400 truncate">Finance & Wellness Dashboard</p>
           </div>
         </div>
 
@@ -727,26 +729,27 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
           <Link
             to="/reminders"
-            className="relative p-2 text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-all"
+            className="relative p-2.5 min-w-11 min-h-11 flex items-center justify-center text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-all touch-manipulation"
+            aria-label="Reminders"
           >
             <Bell className="h-5 w-5" />
             {reminderPendingCount > 0 && (
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-bounce"></span>
             )}
           </Link>
-          <div className="flex items-center space-x-2 bg-slate-800 py-1.5 px-3 rounded-xl border border-slate-700">
+          <div className="hidden sm:flex items-center space-x-2 bg-slate-800 py-1.5 px-3 rounded-xl border border-slate-700">
             <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
               {user ? getUserInitials(user.username) : '?'}
             </div>
-            <span className="text-xs font-medium text-slate-200 hidden sm:inline">{user?.username}</span>
+            <span className="text-xs font-medium text-slate-200">{user?.username}</span>
           </div>
           <button
             type="button"
             onClick={() => void signOut()}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2.5 min-h-11 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all touch-manipulation"
             title="Sign out"
           >
             <LogOut className="h-4 w-4" />
@@ -756,62 +759,28 @@ export default function App() {
       </header>
 
       {/* Main Layout Container */}
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0">
         
-        {/* Responsive Side Menu Bar */}
-        <aside className="w-full lg:w-64 bg-slate-900/40 border-b lg:border-b-0 lg:border-r border-slate-800/80 p-4 flex lg:flex-col justify-between items-center lg:items-stretch space-y-0 lg:space-y-6">
-          <div className="w-full flex lg:flex-col justify-around lg:justify-start lg:space-y-1.5">
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) => navLinkClass(isActive, 'bg-indigo-600/20 text-indigo-300 border-l-4 border-indigo-500')}
-            >
-              <Activity className="h-5 w-5" />
-              <span className="hidden lg:inline">Unified Dashboard</span>
-            </NavLink>
-
-            <NavLink
-              to="/finance"
-              className={({ isActive }) => navLinkClass(isActive, 'bg-emerald-600/20 text-emerald-300 border-l-4 border-emerald-500')}
-            >
-              <Wallet className="h-5 w-5" />
-              <span className="hidden lg:inline">Finance Tracker</span>
-            </NavLink>
-
-            <NavLink
-              to="/wellness"
-              className={({ isActive }) => navLinkClass(isActive, 'bg-blue-600/20 text-blue-300 border-l-4 border-blue-500')}
-            >
-              <Moon className="h-5 w-5" />
-              <span className="hidden lg:inline">Health & Wellness</span>
-            </NavLink>
-
-            <NavLink
-              to="/tasks"
-              className={({ isActive }) => navLinkClass(isActive, 'bg-indigo-600/20 text-indigo-300 border-l-4 border-indigo-500')}
-            >
-              <ListTodo className="h-5 w-5" />
-              <span className="hidden lg:inline">Tasks</span>
-            </NavLink>
-
-            <NavLink
-              to="/reminders"
-              className={({ isActive }) => navLinkClass(isActive, 'bg-rose-600/20 text-rose-300 border-l-4 border-rose-500')}
-            >
-              <Bell className="h-5 w-5" />
-              <span className="hidden lg:inline">Reminders</span>
-            </NavLink>
-
-            <NavLink
-              to="/food"
-              className={({ isActive }) => navLinkClass(isActive, 'bg-amber-600/20 text-amber-300 border-l-4 border-amber-500')}
-            >
-              <UtensilsCrossed className="h-5 w-5" />
-              <span className="hidden lg:inline">Food Intake</span>
-            </NavLink>
+        {/* Desktop Side Menu Bar */}
+        <aside className="hidden lg:flex lg:w-64 lg:flex-col bg-slate-900/40 border-r border-slate-800/80 p-4 justify-between">
+          <div className="space-y-1.5">
+            {NAV_ITEMS.map(item => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) => sidebarLinkClass(isActive, item.activeClass)}
+                >
+                  <Icon className="h-5 w-5 shrink-0" />
+                  <span>{item.label}</span>
+                </NavLink>
+              );
+            })}
           </div>
 
-          <div className="hidden lg:block bg-gradient-to-br from-slate-900 to-indigo-950 p-4 rounded-xl border border-slate-800 text-center">
+          <div className="bg-gradient-to-br from-slate-900 to-indigo-950 p-4 rounded-xl border border-slate-800 text-center">
             <Sparkles className="h-6 w-6 text-indigo-400 mx-auto mb-2" />
             <p className="text-xs font-medium text-slate-200">Consistency is Key!</p>
             <p className="text-[10px] text-slate-400 mt-1">Track daily to unlock insightful trends.</p>
@@ -819,7 +788,7 @@ export default function App() {
         </aside>
 
         {/* Dynamic Content Area */}
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto pb-24 lg:pb-8">
           <Routes>
             <Route path="/" element={
               <DashboardPage
@@ -1690,8 +1659,10 @@ export default function App() {
         onSubmit={handleQuickFoodSubmit}
       />
 
+      <MobileBottomNav />
+
       {/* Aesthetic Footer */}
-      <footer className="bg-slate-950 py-4 border-t border-slate-900 text-center text-xs text-slate-500">
+      <footer className="hidden lg:block bg-slate-950 py-4 border-t border-slate-900 text-center text-xs text-slate-500">
         <p>© 2026 LifeFlow Hub. All components and calculations calibrated securely in memory.</p>
       </footer>
 

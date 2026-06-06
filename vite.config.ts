@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['vite.svg'],
+      includeAssets: ['icon.svg'],
       manifest: {
         name: 'LifeFlow — Finance & Wellness',
         short_name: 'LifeFlow',
@@ -17,16 +17,19 @@ export default defineConfig({
         theme_color: '#020617',
         background_color: '#020617',
         display: 'standalone',
+        orientation: 'portrait-primary',
+        scope: '/',
         start_url: '/',
+        categories: ['finance', 'health', 'productivity'],
         icons: [
           {
-            src: '/vite.svg',
-            sizes: '192x192',
+            src: '/icon.svg',
+            sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any',
           },
           {
-            src: '/vite.svg',
+            src: '/icon.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable',
@@ -34,8 +37,23 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api/],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'supabase-api',
+              expiration: {
+                maxEntries: 32,
+                maxAgeSeconds: 60 * 5,
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
       },
       devOptions: {
         enabled: true,

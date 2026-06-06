@@ -6,7 +6,17 @@ import './index.css';
 import AppGate from './components/AppGate.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 
-registerSW({ immediate: true });
+const updateSW = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    if (window.confirm('A new version of LifeFlow is available. Reload now?')) {
+      void updateSW(true);
+    }
+  },
+  onOfflineReady() {
+    console.info('LifeFlow is ready to work offline.');
+  },
+});
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -26,7 +26,7 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 font-sans">
+    <div className="min-h-[100dvh] bg-slate-950 text-slate-100 flex items-center justify-center p-4 px-safe pt-safe pb-safe font-sans">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-3">
           <div className="inline-flex bg-gradient-to-tr from-indigo-500 to-emerald-400 p-3 rounded-2xl shadow-lg shadow-indigo-500/20">
@@ -89,7 +89,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={submitting}
-              className={`w-full font-bold py-3 rounded-xl transition-all disabled:opacity-60 ${
+              className={`w-full font-bold py-3.5 min-h-12 rounded-xl transition-all disabled:opacity-60 touch-manipulation ${
                 mode === 'login'
                   ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white'
@@ -103,7 +103,7 @@ export default function AuthPage() {
         <p className="text-center text-xs text-slate-500">
           {mode === 'signup'
             ? 'Pick a unique username. No password needed.'
-            : 'Enter your username to continue.'}
+            : 'Login only works for existing accounts. Use Create Account for new usernames.'}
         </p>
       </div>
     </div>
