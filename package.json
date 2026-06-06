@@ -12,13 +12,13 @@
     "deploy:supabase": "npm run build && node scripts/deploy-supabase-storage.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
     "lucide-react": "^0.511.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^7.17.0"
   },
   "devDependencies": {
-    "@supabase/supabase-js": "^2.49.8",
     "@tailwindcss/vite": "^4.1.8",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",

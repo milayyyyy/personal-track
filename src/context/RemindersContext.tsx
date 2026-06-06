@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { DEFAULT_REMINDER_CATEGORIES, DEFAULT_REMINDERS } from '../lib/defaults';
+import { getEmptyRemindersData } from '../lib/defaults';
 import { loadUserSection, saveUserSection } from '../lib/userStorage';
 import type { Priority } from '../types/tasks';
 import type { Reminder, ReminderCategory } from '../types/reminders';
@@ -49,26 +49,38 @@ const RemindersContext = createContext<RemindersContextValue | null>(null);
 export function RemindersProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const hydrated = useRef(false);
+  const userId = user?.id;
 
-  const initialData = user
-    ? loadUserSection<RemindersData>(user, 'reminders', { categories: DEFAULT_REMINDER_CATEGORIES, reminders: DEFAULT_REMINDERS })
-    : { categories: DEFAULT_REMINDER_CATEGORIES, reminders: DEFAULT_REMINDERS };
-
-  const [categories, setCategories] = useState<ReminderCategory[]>(initialData.categories);
-  const [reminders, setReminders] = useState<Reminder[]>(initialData.reminders);
+  const [categories, setCategories] = useState<ReminderCategory[]>([]);
+  const [reminders, setReminders] = useState<Reminder[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    const saved = loadUserSection<RemindersData>(user, 'reminders', { categories: DEFAULT_REMINDER_CATEGORIES, reminders: DEFAULT_REMINDERS });
-    setCategories(saved.categories);
-    setReminders(saved.reminders);
-    hydrated.current = true;
-  }, [user]);
+    if (!userId) {
+      setCategories([]);
+      setReminders([]);
+      hydrated.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    hydrated.current = false;
+
+    void loadUserSection<RemindersData>(userId, 'reminders', getEmptyRemindersData()).then(saved => {
+      if (cancelled) return;
+      setCategories(saved.categories);
+      setReminders(saved.reminders);
+      hydrated.current = true;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
-    if (!user || !hydrated.current) return;
-    saveUserSection(user, 'reminders', { categories, reminders });
-  }, [user, categories, reminders]);
+    if (!userId || !hydrated.current) return;
+    void saveUserSection(userId, 'reminders', { categories, reminders });
+  }, [userId, categories, reminders]);
 
   const [newReminderText, setNewReminderText] = useState('');
   const [newReminderCategory, setNewReminderCategory] = useState('Health');

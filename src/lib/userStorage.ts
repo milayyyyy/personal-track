@@ -1,26 +1,49 @@
-import { enqueueSync, flushSyncQueue, isOnline } from './offlineSync';
+import { supabase } from './supabase';
 
-export function userStorageKey(username: string, section: string): string {
-  return `lifeflow_${section}_${username.toLowerCase()}`;
-}
+export type DataSection = 'app' | 'tasks' | 'reminders' | 'food';
 
-export function loadUserSection<T>(username: string, section: string, fallback: T): T {
+const SECTION_COLUMN: Record<DataSection, string> = {
+  app: 'app',
+  tasks: 'tasks',
+  reminders: 'reminders',
+  food: 'food',
+};
+
+export async function loadUserSection<T>(userId: string, section: DataSection, fallback: T): Promise<T> {
   try {
-    const raw = localStorage.getItem(userStorageKey(username, section));
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
+    const { data, error } = await supabase
+      .from('user_data')
+      .select(SECTION_COLUMN[section])
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!data) return fallback;
+
+    const payload = data[SECTION_COLUMN[section] as keyof typeof data];
+    if (!payload || typeof payload !== 'object') return fallback;
+    return payload as T;
+  } catch (err) {
+    console.error(`Failed to load ${section} from Supabase`, err);
     return fallback;
   }
 }
 
-export function saveUserSection<T>(username: string, section: string, data: T): void {
-  localStorage.setItem(userStorageKey(username, section), JSON.stringify(data));
-  enqueueSync(username, section, data);
-  window.dispatchEvent(new Event('lifeflow-sync-queue-updated'));
+export async function saveUserSection<T>(userId: string, section: DataSection, data: T): Promise<void> {
+  const column = SECTION_COLUMN[section];
+  const { error } = await supabase.from('user_data').upsert(
+    {
+      user_id: userId,
+      [column]: data,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  );
 
-  if (isOnline()) {
-    void flushSyncQueue().then(() => {
-      window.dispatchEvent(new Event('lifeflow-sync-queue-updated'));
-    });
+  if (error) {
+    console.error(`Failed to save ${section} to Supabase`, error);
+    throw error;
   }
+
+  window.dispatchEvent(new Event('lifeflow-data-updated'));
 }

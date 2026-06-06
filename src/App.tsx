@@ -6,7 +6,7 @@ import { useReminders } from './context/RemindersContext';
 import { useFood } from './context/FoodContext';
 import { getUserInitials } from './lib/auth';
 import { loadUserSection, saveUserSection } from './lib/userStorage';
-import { DEFAULT_ACCOUNTS, DEFAULT_TRANSACTIONS, DEFAULT_TRANSACTION_CATEGORIES } from './lib/defaults';
+import { getEmptyAppData, STARTER_TRANSACTION_CATEGORIES } from './lib/defaults';
 import TransactionCategoryManager from './components/TransactionCategoryManager';
 import TasksPage from './pages/TasksPage';
 import RemindersPage from './pages/RemindersPage';
@@ -91,34 +91,7 @@ interface PersistedAppData {
 }
 
 function getDefaultAppData(): PersistedAppData {
-  return {
-    accounts: DEFAULT_ACCOUNTS,
-    transactions: DEFAULT_TRANSACTIONS,
-    transactionCategories: DEFAULT_TRANSACTION_CATEGORIES,
-    savingsGoals: [
-      { id: 'g1', name: 'New MacBook Pro', target: 2000, current: 1250, category: 'Tech' },
-      { id: 'g2', name: 'Europe Summer Trip', target: 5000, current: 2200, category: 'Travel' },
-    ],
-    sleepLogs: [
-      { id: 's1', date: 'June 5', duration: '7h 45m', score: 85, timeRange: '11:00 PM - 06:45 AM' },
-      { id: 's2', date: 'June 4', duration: '8h 12m', score: 92, timeRange: '10:30 PM - 06:42 AM' },
-      { id: 's3', date: 'June 3', duration: '6h 30m', score: 70, timeRange: '12:00 AM - 06:30 AM' },
-    ],
-    waterCurrent: 1250,
-    waterHistory: [
-      { time: '09:00 AM', amount: 250 },
-      { time: '11:30 AM', amount: 500 },
-      { time: '02:15 PM', amount: 250 },
-      { time: '05:00 PM', amount: 250 },
-    ],
-    fastingLogs: [
-      { id: 'f1', date: 'June 5', duration: '16h 0m', type: 'Fast', timeRange: '08:00 PM - 12:00 PM' },
-      { id: 'f2', date: 'June 4', duration: '8h 0m', type: 'Eat', timeRange: '12:00 PM - 08:00 PM' },
-    ],
-    fastingDuration: 16 * 3600,
-    eatingSeconds: 16 * 3600,
-    fastingMode: 'fast',
-  };
+  return getEmptyAppData();
 }
 
 function navLinkClass(isActive: boolean, activeClass: string) {
@@ -192,12 +165,12 @@ export default function App() {
   const [txTitle, setTxTitle] = useState('');
   const [txAmount, setTxAmount] = useState('');
   const [txType, setTxType] = useState<TxType>('expense');
-  const [txCategory, setTxCategory] = useState(DEFAULT_TRANSACTION_CATEGORIES[0].name);
+  const [txCategory, setTxCategory] = useState(STARTER_TRANSACTION_CATEGORIES[0].name);
   const [newTxCategoryName, setNewTxCategoryName] = useState('');
   const [editingTxCategoryId, setEditingTxCategoryId] = useState<string | null>(null);
   const [editTxCategoryName, setEditTxCategoryName] = useState('');
   const [txCategoryError, setTxCategoryError] = useState('');
-  const [txAccount, setTxAccount] = useState('1');
+  const [txAccount, setTxAccount] = useState('');
   const [txCurrency, setTxCurrency] = useState<Currency>('PHP');
 
   const [showAddAccount, setShowAddAccount] = useState(false);
@@ -239,26 +212,56 @@ export default function App() {
   const [waterCurrent, setWaterCurrent] = useState(defaultAppData.waterCurrent);
   const [waterHistory, setWaterHistory] = useState<WaterEntry[]>(defaultAppData.waterHistory);
 
-  useEffect(() => {
-    if (!user) return;
-    const saved = loadUserSection(user, 'app', getDefaultAppData());
-    setAccounts(saved.accounts);
-    setTransactions(saved.transactions);
-    setTransactionCategories(saved.transactionCategories ?? DEFAULT_TRANSACTION_CATEGORIES);
-    setSavingsGoals(saved.savingsGoals);
-    setSleepLogs(saved.sleepLogs);
-    setWaterCurrent(saved.waterCurrent);
-    setWaterHistory(saved.waterHistory);
-    setFastingLogs(saved.fastingLogs);
-    setFastingDuration(saved.fastingDuration);
-    setEatingSeconds(saved.eatingSeconds);
-    setFastingMode(saved.fastingMode);
-    dataHydrated.current = true;
-  }, [user]);
+  const userId = user?.id;
 
   useEffect(() => {
-    if (!user || !dataHydrated.current) return;
-    saveUserSection(user, 'app', {
+    if (!userId) {
+      const empty = getDefaultAppData();
+      setAccounts(empty.accounts);
+      setTransactions(empty.transactions);
+      setTransactionCategories(empty.transactionCategories);
+      setSavingsGoals(empty.savingsGoals);
+      setSleepLogs(empty.sleepLogs);
+      setWaterCurrent(empty.waterCurrent);
+      setWaterHistory(empty.waterHistory);
+      setFastingLogs(empty.fastingLogs);
+      setFastingDuration(empty.fastingDuration);
+      setEatingSeconds(empty.eatingSeconds);
+      setFastingMode(empty.fastingMode);
+      dataHydrated.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    dataHydrated.current = false;
+
+    void loadUserSection(userId, 'app', getDefaultAppData()).then(saved => {
+      if (cancelled) return;
+      setAccounts(saved.accounts);
+      setTransactions(saved.transactions);
+      setTransactionCategories(saved.transactionCategories ?? STARTER_TRANSACTION_CATEGORIES);
+      setSavingsGoals(saved.savingsGoals);
+      setSleepLogs(saved.sleepLogs);
+      setWaterCurrent(saved.waterCurrent);
+      setWaterHistory(saved.waterHistory);
+      setFastingLogs(saved.fastingLogs);
+      setFastingDuration(saved.fastingDuration);
+      setEatingSeconds(saved.eatingSeconds);
+      setFastingMode(saved.fastingMode);
+      if (saved.accounts.length > 0) {
+        setTxAccount(saved.accounts[0].id);
+      }
+      dataHydrated.current = true;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !dataHydrated.current) return;
+    void saveUserSection(userId, 'app', {
       accounts,
       transactions,
       transactionCategories,
@@ -272,7 +275,7 @@ export default function App() {
       fastingMode,
     });
   }, [
-    user,
+    userId,
     accounts,
     transactions,
     transactionCategories,
@@ -446,6 +449,7 @@ export default function App() {
     };
 
     setAccounts([...accounts, newAcc]);
+    if (!txAccount) setTxAccount(newAcc.id);
     setNewAccName('');
     setNewAccBalance('');
     setNewAccCurrency('PHP');
@@ -735,13 +739,13 @@ export default function App() {
           </Link>
           <div className="flex items-center space-x-2 bg-slate-800 py-1.5 px-3 rounded-xl border border-slate-700">
             <div className="w-6 h-6 rounded-full bg-indigo-500 flex items-center justify-center text-xs font-bold text-white">
-              {user ? getUserInitials(user) : '?'}
+              {user ? getUserInitials(user.username) : '?'}
             </div>
-            <span className="text-xs font-medium text-slate-200 hidden sm:inline">{user}</span>
+            <span className="text-xs font-medium text-slate-200 hidden sm:inline">{user?.username}</span>
           </div>
           <button
             type="button"
-            onClick={signOut}
+            onClick={() => void signOut()}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-all"
             title="Sign out"
           >
@@ -819,7 +823,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={
               <DashboardPage
-                username={user ?? 'Friend'}
+                username={user?.username ?? 'Friend'}
                 accounts={accounts}
                 balanceByCurrency={balanceByCurrency}
                 savingsGoals={savingsGoals}

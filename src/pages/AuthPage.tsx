@@ -9,15 +9,20 @@ export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
 
-    const result = mode === 'login' ? login(username) : signUp(username);
+    const result = mode === 'login' ? await login(username) : await signUp(username);
+
     if (!result.ok) {
       setError(result.error);
     }
+
+    setSubmitting(false);
   };
 
   return (
@@ -37,7 +42,10 @@ export default function AuthPage() {
           <div className="grid grid-cols-2 bg-slate-950 p-1 rounded-xl border border-slate-800 text-sm font-semibold">
             <button
               type="button"
-              onClick={() => { setMode('login'); setError(''); }}
+              onClick={() => {
+                setMode('login');
+                setError('');
+              }}
               className={`py-2 rounded-lg transition-all flex items-center justify-center gap-2 ${
                 mode === 'login' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -46,7 +54,10 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={() => { setMode('signup'); setError(''); }}
+              onClick={() => {
+                setMode('signup');
+                setError('');
+              }}
               className={`py-2 rounded-lg transition-all flex items-center justify-center gap-2 ${
                 mode === 'signup' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -67,11 +78,6 @@ export default function AuthPage() {
                 value={username}
                 onChange={e => setUsername(e.target.value)}
               />
-              <p className="text-[11px] text-slate-500 mt-2">
-                {mode === 'login'
-                  ? 'Enter your username to continue.'
-                  : 'Pick a username — that is all you need.'}
-              </p>
             </div>
 
             {error && (
@@ -82,19 +88,22 @@ export default function AuthPage() {
 
             <button
               type="submit"
-              className={`w-full font-bold py-3 rounded-xl transition-all ${
+              disabled={submitting}
+              className={`w-full font-bold py-3 rounded-xl transition-all disabled:opacity-60 ${
                 mode === 'login'
                   ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white'
               }`}
             >
-              {mode === 'login' ? 'Sign In' : 'Create Account'}
+              {submitting ? 'Please wait…' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
         </div>
 
         <p className="text-center text-xs text-slate-500">
-          Simple login for personal and friends use — no password required.
+          {mode === 'signup'
+            ? 'Pick a unique username. No password needed.'
+            : 'Enter your username to continue.'}
         </p>
       </div>
     </div>

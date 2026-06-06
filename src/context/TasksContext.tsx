@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { DEFAULT_TASK_CATEGORIES, DEFAULT_TASKS } from '../lib/defaults';
+import { getEmptyTasksData } from '../lib/defaults';
 import { loadUserSection, saveUserSection } from '../lib/userStorage';
 import type { Category, Priority, Task } from '../types/tasks';
 
@@ -13,6 +13,7 @@ interface TasksContextValue {
   categories: Category[];
   tasks: Task[];
   pendingCount: number;
+  isLoading: boolean;
   newTaskText: string;
   setNewTaskText: (value: string) => void;
   newTaskCategory: string;
@@ -46,32 +47,47 @@ const TasksContext = createContext<TasksContextValue | null>(null);
 export function TasksProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const hydrated = useRef(false);
+  const userId = user?.id;
 
-  const initialData = user
-    ? loadUserSection<TasksData>(user, 'tasks', { categories: DEFAULT_TASK_CATEGORIES, tasks: DEFAULT_TASKS })
-    : { categories: DEFAULT_TASK_CATEGORIES, tasks: DEFAULT_TASKS };
-
-  const [categories, setCategories] = useState<Category[]>(initialData.categories);
-  const [tasks, setTasks] = useState<Task[]>(initialData.tasks);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    const saved = loadUserSection<TasksData>(user, 'tasks', { categories: DEFAULT_TASK_CATEGORIES, tasks: DEFAULT_TASKS });
-    setCategories(saved.categories);
-    setTasks(saved.tasks);
-    hydrated.current = true;
-  }, [user]);
+    if (!userId) {
+      setCategories([]);
+      setTasks([]);
+      hydrated.current = false;
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    hydrated.current = false;
+    setIsLoading(true);
+
+    void loadUserSection<TasksData>(userId, 'tasks', getEmptyTasksData()).then(saved => {
+      if (cancelled) return;
+      setCategories(saved.categories);
+      setTasks(saved.tasks);
+      hydrated.current = true;
+      setIsLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
-    if (!user || !hydrated.current) return;
-    saveUserSection(user, 'tasks', { categories, tasks });
-  }, [user, categories, tasks]);
+    if (!userId || !hydrated.current) return;
+    void saveUserSection(userId, 'tasks', { categories, tasks });
+  }, [userId, categories, tasks]);
 
   const [newTaskText, setNewTaskText] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState('Work');
   const [newTaskPriority, setNewTaskPriority] = useState<Priority>('medium');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
-
   const [newCategoryName, setNewCategoryName] = useState('');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [editCategoryName, setEditCategoryName] = useState('');
@@ -174,6 +190,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         categories,
         tasks,
         pendingCount,
+        isLoading,
         newTaskText,
         setNewTaskText,
         newTaskCategory,

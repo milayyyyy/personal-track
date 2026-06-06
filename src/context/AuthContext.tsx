@@ -1,63 +1,82 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { createAccount, login, restorePersistedSession, setSessionUser, signOut as authSignOut } from '../lib/auth';
+import {
+  fetchProfile,
+  signInWithUsername,
+  signOutUser,
+  signUpWithUsername,
+  type AuthProfile,
+} from '../lib/auth';
+import { supabase } from '../lib/supabase';
 
 interface AuthContextValue {
-  user: string | null;
+  user: AuthProfile | null;
   isLoading: boolean;
-  login: (username: string) => { ok: true } | { ok: false; error: string };
-  signUp: (username: string) => { ok: true } | { ok: false; error: string };
-  signOut: () => void;
+  login: (username: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  signUp: (username: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<string | null>(() => restorePersistedSession());
-  const [isLoading] = useState(false);
+  const [user, setUser] = useState<AuthProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const syncSession = () => {
-      const restored = restorePersistedSession();
-      setUser(current => (current === restored ? current : restored));
+    let mounted = true;
+
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      if (data.session?.user) {
+        const profile = await fetchProfile(data.session.user.id);
+        setUser(profile);
+      }
+
+      setIsLoading(false);
     };
 
-    window.addEventListener('focus', syncSession);
-    window.addEventListener('storage', syncSession);
+    void init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
+      if (!session?.user) {
+        setUser(null);
+        return;
+      }
+      const profile = await fetchProfile(session.user.id);
+      setUser(profile);
+    });
+
     return () => {
-      window.removeEventListener('focus', syncSession);
-      window.removeEventListener('storage', syncSession);
+      mounted = false;
+      listener.subscription.unsubscribe();
     };
   }, []);
 
-  const handleLogin = (username: string) => {
-    const result = login(username);
+  const handleLogin = async (username: string) => {
+    const result = await signInWithUsername(username);
     if (result.ok) {
-      setUser(result.username);
+      setUser(result.profile);
       return { ok: true as const };
     }
     return { ok: false as const, error: result.error };
   };
 
-  const handleSignUp = (username: string) => {
-    const result = createAccount(username);
+  const handleSignUp = async (username: string) => {
+    const result = await signUpWithUsername(username);
     if (result.ok) {
-      setUser(result.username);
+      setUser(result.profile);
       return { ok: true as const };
     }
     return { ok: false as const, error: result.error };
   };
 
-  const handleSignOut = () => {
-    authSignOut();
+  const handleSignOut = async () => {
+    await signOutUser();
     setUser(null);
   };
-
-  // Keep session persisted whenever a user is active (only sign-out clears it).
-  useEffect(() => {
-    if (user) {
-      setSessionUser(user);
-    }
-  }, [user]);
 
   return (
     <AuthContext.Provider

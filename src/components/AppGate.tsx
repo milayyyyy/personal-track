@@ -23,9 +23,9 @@ export default function AppGate() {
 
   return (
     <OfflineProvider>
-      <TasksProvider key={user}>
-        <RemindersProvider key={user}>
-          <FoodProvider key={user}>
+      <TasksProvider key={user.id}>
+        <RemindersProvider key={user.id}>
+          <FoodProvider key={user.id}>
             <App />
           </FoodProvider>
         </RemindersProvider>

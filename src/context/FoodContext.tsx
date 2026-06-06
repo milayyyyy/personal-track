@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { DEFAULT_FOOD_ENTRIES } from '../lib/defaults';
+import { getEmptyFoodData } from '../lib/defaults';
 import { loadUserSection, saveUserSection } from '../lib/userStorage';
 import type { FoodEntry, MealType } from '../types/food';
 
@@ -49,24 +49,35 @@ export { formatDisplayTime, todayIso };
 export function FoodProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const hydrated = useRef(false);
+  const userId = user?.id;
 
-  const initialData = user
-    ? loadUserSection<FoodData>(user, 'food', { entries: DEFAULT_FOOD_ENTRIES })
-    : { entries: DEFAULT_FOOD_ENTRIES };
-
-  const [entries, setEntries] = useState<FoodEntry[]>(initialData.entries);
+  const [entries, setEntries] = useState<FoodEntry[]>([]);
 
   useEffect(() => {
-    if (!user) return;
-    const saved = loadUserSection<FoodData>(user, 'food', { entries: DEFAULT_FOOD_ENTRIES });
-    setEntries(saved.entries);
-    hydrated.current = true;
-  }, [user]);
+    if (!userId) {
+      setEntries([]);
+      hydrated.current = false;
+      return;
+    }
+
+    let cancelled = false;
+    hydrated.current = false;
+
+    void loadUserSection<FoodData>(userId, 'food', getEmptyFoodData()).then(saved => {
+      if (cancelled) return;
+      setEntries(saved.entries);
+      hydrated.current = true;
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
-    if (!user || !hydrated.current) return;
-    saveUserSection(user, 'food', { entries });
-  }, [user, entries]);
+    if (!userId || !hydrated.current) return;
+    void saveUserSection(userId, 'food', { entries });
+  }, [userId, entries]);
 
   const [newFoodName, setNewFoodName] = useState('');
   const [newFoodMealType, setNewFoodMealType] = useState<MealType>('lunch');
