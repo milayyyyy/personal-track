@@ -1,11 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const DIST_DIR = path.resolve('dist');
 const BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'lifeflow-web';
+const linkedProject = JSON.parse(
+  await readFile(path.resolve('supabase/linked-project.json'), 'utf8'),
+);
 
-const url = process.env.SUPABASE_URL;
+const url = process.env.SUPABASE_URL || linkedProject.url;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!url || !serviceKey) {

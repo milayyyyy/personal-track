@@ -24,3 +24,38 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 npm run build
 npm run preview
 ```
+
+## Supabase project
+
+This repo uses the **personal-track** Supabase project (not dripsprinting):
+
+| Setting | Value |
+|---------|-------|
+| Project | `personal-track` |
+| Ref | `azsahxubolokhkhnbbzo` |
+| URL | `https://azsahxubolokhkhnbbzo.supabase.co` |
+| Dashboard | [Open project](https://supabase.com/dashboard/project/azsahxubolokhkhnbbzo) |
+
+Copy `.env.example` to `.env.local` and paste your **anon** and **service_role** keys from the Supabase dashboard (Settings → API).
+
+Link the CLI (must be logged into the **Website Project** org):
+
+```bash
+npm run link:supabase
+```
+
+## Deploy
+
+**Vercel (recommended frontend host):**
+
+```bash
+npm run deploy:vercel
+```
+
+**Supabase Storage (static build upload):**
+
+```bash
+npm run deploy:supabase
+```
+
+Requires `SUPABASE_SERVICE_ROLE_KEY` in your environment (from the personal-track project API settings).
