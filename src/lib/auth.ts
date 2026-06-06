@@ -25,8 +25,17 @@ function usernameToInternalEmail(username: string): string {
   return `${normalizeUsername(username).toLowerCase()}@${INTERNAL_AUTH_DOMAIN}`;
 }
 
+function getAuthSecret(): string | null {
+  const secret = import.meta.env.VITE_AUTH_SECRET?.trim();
+  return secret || null;
+}
+
+export function isAuthSecretConfigured(): boolean {
+  return Boolean(getAuthSecret());
+}
+
 function deriveInternalPassword(username: string): string {
-  const secret = import.meta.env.VITE_AUTH_SECRET ?? 'lifeflow-dev-secret';
+  const secret = getAuthSecret() ?? '';
   const input = `${normalizeUsername(username).toLowerCase()}:${secret}`;
   let hash = 0;
 
@@ -86,7 +95,10 @@ function validateUsername(username: string): string | null {
 }
 
 function configError(): string {
-  return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then redeploy.';
+  if (!isSupabaseConfigured()) {
+    return 'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY, then redeploy.';
+  }
+  return 'Auth secret is not configured. Add VITE_AUTH_SECRET to your environment variables, then redeploy.';
 }
 
 async function establishSession(username: string): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
@@ -142,7 +154,7 @@ async function ensureProfileAndData(userId: string, username: string): Promise<A
 export async function signUpWithUsername(
   username: string,
 ): Promise<{ ok: true; profile: AuthProfile } | { ok: false; error: string }> {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || !isAuthSecretConfigured()) {
     return { ok: false, error: configError() };
   }
 
@@ -203,7 +215,7 @@ export async function signUpWithUsername(
 export async function signInOrCreateWithUsername(
   username: string,
 ): Promise<{ ok: true; profile: AuthProfile } | { ok: false; error: string }> {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() || !isAuthSecretConfigured()) {
     return { ok: false, error: configError() };
   }
 
